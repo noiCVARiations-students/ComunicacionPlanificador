@@ -1,4 +1,5 @@
-from syst_msgs.srv import AdvService, Waypoints
+from syst_msgs.srv import AdvService
+from syst_msgs.msg import Waypoints
 import rclpy
 from rclpy.node import Node
 
@@ -31,6 +32,23 @@ class MinimalService(Node):
             service_active = False
         return response
 
+class MinimalPublisher(Node):
+
+    def __init__(self, drone_id, waypoints):
+        super().__init__('minimal_publisher')
+        self.get_logger().info(f'data received {waypoints}')
+        self.publisher_ = self.create_publisher(Waypoints, f'{drone_id}_wps', 10)
+        self.waypoints = waypoints
+        self.drone_id = drone_id
+        self.public_wps(self, drone_id)
+
+    def public_wps(self):
+        msg = Waypoints()
+        np_array = self.waypoints
+        msg.wps = np_array.flatten().tolist()
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % self.drone_id)
+"""
 class MinimalClient(Node):
 
     def __init__(self, drone_id, waypoints):
@@ -48,7 +66,7 @@ class MinimalClient(Node):
         self.future = self.client.call_async(self.req)
         rclpy.spin_until_future_complete(self, self.future)
         return self.future.result()
-
+"""
 def main():
     rclpy.init()
 
@@ -67,13 +85,8 @@ def main():
     print(wps)
     for drone_wps in wps[0]:
         print(i)
-        minimal_client = MinimalClient(drones_names[index], drone_wps)
-        cli_response = minimal_client.send_request()
-        minimal_client.get_logger().info(
-            'Is ready ? %d' %
-            (cli_response.ready))
-
-        minimal_client.destroy_node()
+        minimal_publisher = MinimalPublisher(drones_names[index], drone_wps)
+        minimal_publisher.destroy_node()
         index = index+1
 
     rclpy.shutdown()
