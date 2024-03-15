@@ -3,33 +3,28 @@ import rclpy
 from rclpy.node import Node
 
 from planning_algorithm.main import verdugo
-from .wps_processation_tools import *
+import numpy as np
 
-i = 0
-flight_height = 0
+i = 2
 service_active = True
 drones = []
-wps_metadata = WPS_metadata()
+drones_names = []
 
 class MinimalService(Node):
 
     def __init__(self):
         super().__init__('minimal_service')
-        
-        global i, flight_height
-        i = self.declare_parameter('drones_quantity', 0.0).get_parameter_value().double_value
-        flight_height = self.declare_parameter('flight_height', 0.0).get_parameter_value().double_value
         self.srv = self.create_service(AdvService, 'adv_service', self.add_two_ints_callback)
 
     def add_two_ints_callback(self, request, response):
-        global service_active, drones, i, wps_metadata
+        global service_active, drones, i
 
         response.response = request.tof + request.speed
         self.get_logger().info('Incoming request\ndrone_id: %s speed: %d tof: %d ancho_de_barrido: %d\ncoordx: %d, coordy: %d' % (request.drone_id, \
                         request.speed, request.tof, request.ancho_de_barrido, request.coordx, request.coordy))
         
         drones.append([request.coordx, request.coordy, request.ancho_de_barrido, request.speed, request.tof])
-        wps_metadata.add_drone(request.drone_id, request.ancho_de_barrido)
+        drones_names.append(request.drone_id)
 
         i = i-1
         if i == 0:
@@ -63,29 +58,23 @@ def main():
         rclpy.spin_once(minimal_service)
 
     wps = verdugo(drones)
-    print(drones)
 
+    print(drones)
     minimal_service.destroy_node()
 
     index = 0
     print("waypoints")
     print(wps)
+    for drone_wps in wps[0]:
+        print(i)
+        minimal_client = MinimalClient(drones_names[index], drone_wps)
+        cli_response = minimal_client.send_request()
+        minimal_client.get_logger().info(
+            'Is ready ? %d' %
+            (cli_response.ready))
 
-    global flight_height
-
-    drones_names = wps_metadata.flatten()
-    proccesed_wps = process_wps(wps, flight_height)
-
-    for list_array_2d in proccesed_wps:
-        for array_2d in list_array_2d:
-            minimal_client = MinimalClient(drones_names[index], array_2d)
-            cli_response = minimal_client.send_request()
-            minimal_client.get_logger().info(
-                'Is ready ? %d' % (cli_response.ready)
-            )
-
-            minimal_client.destroy_node()
-            index = index + 1
+        minimal_client.destroy_node()
+        index = index+1
 
     rclpy.shutdown()
 

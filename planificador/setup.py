@@ -25,8 +25,7 @@ setup(
         'console_scripts': [
             'client = planificador.client:main',
             'server = planificador.service:main',
-            'client2 = planificador.client2:main',
-            'client3 = planificador.client3:main'
+            'client2 = planificador.client2:main'
         ],
     },
 )
