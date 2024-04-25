@@ -1,5 +1,5 @@
 from syst_msgs.srv import AdvService
-from syst_msgs.msg import Waypoints
+from syst_msgs.msg import Waypoints, StringArray
 import rclpy
 from rclpy.node import Node
 
@@ -38,6 +38,12 @@ class Station(Node):
             i = i-1
             if i == 0:
                 service_active = False
+
+                publisher_drone_ids = self.create_publisher(StringArray, f'/drone_ids', 10)
+                msg = StringArray()
+                msg.drone_ids = wps_metadata.flatten_str()
+                publisher_drone_ids.publish(msg)
+                
                 self.publish_wps()
             return response
         response.response = 0.0
